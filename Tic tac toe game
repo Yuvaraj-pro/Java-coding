@@ -1,0 +1,212 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class TicTacToeWithInteractiveScoreboard extends JFrame implements ActionListener {
+    private JTextField player1Field, player2Field;
+    private JComboBox<String> modeBox, symbolBox;
+    private JButton[][] buttons = new JButton[3][3];
+    private JLabel statusLabel, player1ScoreLabel, player2ScoreLabel;
+    private JButton resetButton, replayButton;
+    private String player1 = "Player 1", player2 = "Player 2";
+    private char currentSymbol = 'X';
+    private boolean isPlayerVsComputer = false;
+    private String[][] board = new String[3][3];
+    private int player1Score = 0, player2Score = 0;
+
+    public TicTacToeWithInteractiveScoreboard() {
+        setTitle("Tic Tac Toe with Scoreboard");
+        setSize(700, 800);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+
+        // Top Panel: Player Names and Game Settings
+        JPanel topPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+        topPanel.setBorder(BorderFactory.createTitledBorder("Game Settings"));
+        player1Field = new JTextField("Player 1");
+        player2Field = new JTextField("Player 2");
+        topPanel.add(new JLabel("Player 1 Name:"));
+        topPanel.add(player1Field);
+        topPanel.add(new JLabel("Player 2/Computer Name:"));
+        topPanel.add(player2Field);
+
+        modeBox = new JComboBox<>(new String[]{"Player vs Player", "Player vs Computer"});
+        symbolBox = new JComboBox<>(new String[]{"X", "O"});
+        topPanel.add(new JLabel("Game Mode:"));
+        topPanel.add(modeBox);
+        topPanel.add(new JLabel("Choose Symbol:"));
+        topPanel.add(symbolBox);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        // Center Panel: Game Board
+        JPanel boardPanel = new JPanel(new GridLayout(3, 3, 5, 5));
+        boardPanel.setBorder(BorderFactory.createTitledBorder("Game Board"));
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j] = new JButton("");
+                buttons[i][j].setFont(new Font("Arial", Font.BOLD, 40));
+                buttons[i][j].addActionListener(this);
+                boardPanel.add(buttons[i][j]);
+                board[i][j] = "";
+            }
+        }
+        add(boardPanel, BorderLayout.CENTER);
+
+        // Bottom Panel: Status, Scores, and Controls
+        JPanel bottomPanel = new JPanel(new GridLayout(3, 1, 10, 10));
+        statusLabel = new JLabel("Enter details and start playing!", JLabel.CENTER);
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        bottomPanel.add(statusLabel);
+
+        JPanel scorePanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        player1ScoreLabel = new JLabel(player1 + ": 0", JLabel.CENTER);
+        player1ScoreLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        player2ScoreLabel = new JLabel(player2 + ": 0", JLabel.CENTER);
+        player2ScoreLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        scorePanel.add(player1ScoreLabel);
+        scorePanel.add(player2ScoreLabel);
+        bottomPanel.add(scorePanel);
+
+        JPanel controlPanel = new JPanel(new FlowLayout());
+        resetButton = new JButton("Reset");
+        replayButton = new JButton("Replay");
+        resetButton.addActionListener(e -> resetGame());
+        replayButton.addActionListener(e -> replayGame());
+        controlPanel.add(resetButton);
+        controlPanel.add(replayButton);
+        bottomPanel.add(controlPanel);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        JButton clickedButton = (JButton) e.getSource();
+
+        if (clickedButton.getText().equals("")) {
+            clickedButton.setText(String.valueOf(currentSymbol));
+            updateBoard(clickedButton);
+
+            if (checkWin()) {
+                String winner = (currentSymbol == 'X') ? player1 : player2;
+                statusLabel.setText(winner + " (" + currentSymbol + ") wins!");
+                updateScore(winner);
+                disableButtons();
+            } else if (isBoardFull()) {
+                statusLabel.setText("It's a tie!");
+                disableButtons();
+            } else {
+                switchTurn();
+                if (isPlayerVsComputer && currentSymbol == 'O') {
+                    computerMove();
+                }
+            }
+        }
+    }
+
+    private void updateBoard(JButton clickedButton) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (buttons[i][j] == clickedButton) {
+                    board[i][j] = String.valueOf(currentSymbol);
+                }
+            }
+        }
+    }
+
+    private void switchTurn() {
+        currentSymbol = (currentSymbol == 'X') ? 'O' : 'X';
+        statusLabel.setText((currentSymbol == 'X' ? player1 : player2) + "'s (" + currentSymbol + ") turn.");
+    }
+
+    private void computerMove() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j].equals("")) {
+                    buttons[i][j].setText("O");
+                    board[i][j] = "O";
+                    if (checkWin()) {
+                        statusLabel.setText(player2 + " (O) wins!");
+                        updateScore(player2);
+                        disableButtons();
+                    } else {
+                        currentSymbol = 'X';
+                        statusLabel.setText(player1 + "'s (X) turn.");
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    private void updateScore(String winner) {
+        if (winner.equals(player1)) {
+            player1Score++;
+        } else if (winner.equals(player2)) {
+            player2Score++;
+        }
+        player1ScoreLabel.setText(player1 + ": " + player1Score);
+        player2ScoreLabel.setText(player2 + ": " + player2Score);
+    }
+
+    private boolean checkWin() {
+        for (int i = 0; i < 3; i++) {
+            if (board[i][0].equals(board[i][1]) && board[i][1].equals(board[i][2]) && !board[i][0].equals("")) return true;
+            if (board[0][i].equals(board[1][i]) && board[1][i].equals(board[2][i]) && !board[0][i].equals("")) return true;
+        }
+        if (board[0][0].equals(board[1][1]) && board[1][1].equals(board[2][2]) && !board[0][0].equals("")) return true;
+        if (board[0][2].equals(board[1][1]) && board[1][1].equals(board[2][0]) && !board[0][2].equals("")) return true;
+        return false;
+    }
+
+    private boolean isBoardFull() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j].equals("")) return false;
+            }
+        }
+        return true;
+    }
+
+    private void disableButtons() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j].setEnabled(false);
+            }
+        }
+    }
+
+    private void resetGame() {
+        player1Field.setText("Player 1");
+        player2Field.setText("Player 2");
+        modeBox.setSelectedIndex(0);
+        symbolBox.setSelectedIndex(0);
+        player1Score = 0;
+        player2Score = 0;
+        player1ScoreLabel.setText(player1 + ": 0");
+        player2ScoreLabel.setText(player2 + ": 0");
+        replayGame();
+    }
+
+    private void replayGame() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j].setText("");
+                buttons[i][j].setEnabled(true);
+                board[i][j] = "";
+            }
+        }
+        player1 = player1Field.getText();
+        player2 = player2Field.getText();
+        isPlayerVsComputer = modeBox.getSelectedIndex() == 1;
+        currentSymbol = symbolBox.getSelectedItem().toString().charAt(0);
+        statusLabel.setText(player1 + "'s (" + currentSymbol + ") turn.");
+    }
+
+    public static void main(String[] args) {
+        new TicTacToeWithInteractiveScoreboard();
+    }
+}
